@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precision Sales Intelligence Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Configure Tailwind to use the 'Inter' font and define a custom color palette -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#1e40af', // Darker Blue for main actions (Deep Primary)
+                        'secondary-cyan': '#06b6d4', // Bright Cyan for accents (Highlight)
+                        'accent-orange': '#f97316', // Orange for key CTAs
+                        'dark-bg': '#0f172a', // Slate-900 (Page Background)
+                        'card-bg': '#1f2937', // Slate-800 (Card/Modal Background)
+                        'light-text': '#f1f5f9', // Slate-100 (Main Text)
+                        'subtle-text': '#94a3b8', // Slate-400 (Secondary Text)
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Inter Font and Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* CSS vars used by inline styles in this file - provide fallbacks for native CSS rules
+           and for any code using var(--*) values. These mirror the Tailwind custom colors. */
+        :root {
+            --primary-blue: #1e40af;
+            --secondary-cyan: #06b6d4;
+            --accent-orange: #f97316;
+            --dark-bg: #0f172a;
+            --card-bg: #1f2937;
+            --light-text: #f1f5f9;
+            --subtle-text: #94a3b8;
+        }
+
+        /* Small spinner animation used by TTS/play buttons and loading states */
+        .spin-animation { animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Custom scrollbar and base styling */
+        body {
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #06b6d4;
+            border-radius: 4px;
+        }
+        .page { display: none; min-height: 100vh; }
+        .page.active { display: block; }
+        
+        /* Utility overrides to use Tailwind colors */
+        .app-container { border-color: #334155; }
+        .action-button:hover { background-color: #06b6d4; }
+        .btn-login, .btn-signup { 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); 
+            transition: transform 0.2s; 
+        }
+        .btn-signup:hover { transform: translateY(-2px); }
+
+        /* Specific Component Styling */
+        .card-header { border-bottom: 3px solid #f97316; }
+        .card-icon { color: #06b6d4; }
+        .section-title::after { background-color: #f97316; }
+
+        /* AI Chat Specifics */
+        #chatBox { background-color: #1e293b; }
+        .ai-header { background-color: #1e40af; }
+        .user-message .message-bubble { background-color: #06b6d4; }
+        .ai-message .message-bubble { background-color: #334155; color: #f1f5f9; }
+        .chat-input input { background-color: #0f172a; border-color: #334155; color: #f1f5f9; }
+        .ai-status.online { background-color: #1e40af; color: #f1f5f9; }
+        .ai-status.typing { background-color: #f97316; color: #1f2937; }
+        .chat-input button { color: #1e40af; }
+
+        /* Navigation Active Link Styling */
+        .nav-link.active {
+            color: var(--accent-orange);
+            font-weight: 600;
+            position: relative;
+        }
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 100%;
+            height: 2px;
+            background-color: var(--accent-orange);
+            transform: scaleX(1);
+        }
+
+        /* Mobile Adjustments for Nav */
+        @media (max-width: 640px) {
+            .nav-link { margin-left: 0 !important; }
+            .nav-link.active::after { bottom: 0 !important; }
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-light-text font-sans scroll-smooth">
+    <div id="homepage" class="page active">
+        <header class="h-screen flex flex-col" style="background: linear-gradient(135deg, #1e40af, #0f172a);">
+            <nav class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center text-white">
+                <div class="flex items-center space-x-2">
+                    <div class="text-2xl font-bold text-secondary-cyan">
+                        AI <span class="text-light-text">Sales</span>.
+                    </div>
+                </div>
+                <div class="flex space-x-4 items-center">
+                    <a href="#" onclick="showPage('dashboard-page', this)" id="navDashboardLink" class="font-medium hover:text-accent-orange transition duration-200 nav-link" style="display:none;" data-en="Dashboard" data-hi="डैशबोर्ड" data-ta="டாஷ்போர்டு" data-ma="ഡാഷ്‌ബോർഡ്">Dashboard</a>
+                    <a href="#" onclick="showPage('transcript-library-page', this)" class="font-medium hover:text-accent-orange transition duration-200 nav-link" data-en="Transcript Library" data-hi="प्रतिलेख पुस्तकालय" data-ta="டிரான்ஸ்கிரிப்ட் நூலகம்" data-ma="ട്രാൻസ്ക്രിപ്റ്റ് ലൈബ്രറി">Transcript Library</a>
+                    <a href="#" onclick="showPage('transcript-analysis-page', this)" class="font-medium hover:text-accent-orange transition duration-200 nav-link" data-en="Analyze Transcript" data-hi="प्रतिलेख का विश्लेषण करें" data-ta="டிரான்ஸ்கிரிப்டை பகுப்பாய்வு செய்யவும்" data-ma="ട്രാൻസ്ക്രിപ്റ്റ് വിശകലനം ചെയ്യുക">Analyze Transcript</a>
+                </div>
+                <div class="flex space-x-3 items-center">
+                    <a href="#" class="px-4 py-2 bg-primary-blue text-light-text font-semibold rounded-lg shadow-md hover:bg-secondary-cyan transition duration-300 btn-login" id="loginBtn" data-en="Log In" data-hi="लॉग इन" data-ta="உள்நுழைக" data-ma="ലോഗിൻ ചെയ്യുക">Log In</a>
+                    <a href="#" class="px-4 py-2 bg-accent-orange text-dark-bg font-semibold rounded-lg shadow-md hover:bg-orange-600 transition duration-300 btn-onboarding primary-btn" id="signupBtn" data-en="Sign Up" data-hi="साइन अप" data-ta="பதிவு செய்க" data-ma="സൈൻ അപ്പ്">Sign Up</a>
+                    <a href="#" id="logoutBtn" class="px-4 py-2 bg-gray-600 text-light-text font-semibold rounded-lg shadow-md hover:bg-gray-500 transition duration-300 btn-logout" style="display:none;" data-en="Log Out" data-hi="लॉग आउट" data-ta="வெளியேறு" data-ma="പുറത്തുകടക്കുക">Log Out</a>
+                </div>
+            </nav>
+            <div class="flex-grow flex flex-col justify-center items-center text-center px-4">
+                <div class="max-w-4xl">
+                    <h1 class="text-5xl md:text-7xl font-extrabold leading-tight mb-6 text-light-text">
+                        Automated Sales <span class="text-secondary-cyan">Intelligence</span>
+                    </h1>
+                    <p class="text-xl md:text-2xl text-subtle-text mb-10 max-w-2xl mx-auto">
+                        Transform raw sales call transcripts into structured, CRM-ready data instantly—eliminating manual work and guaranteeing 100% data quality.
+                    </p>
+                    <a href="#" class="inline-block px-10 py-4 bg-accent-orange text-dark-bg text-xl font-bold rounded-xl shadow-2xl hover:bg-orange-600 transform hover:scale-[1.02] transition duration-300 ease-in-out primary-btn" id="heroSignupBtn" data-en="Get Started Now" data-hi="अभी शुरू करें" data-ta="இப்போது தொடங்கு" data-ma="ഇപ്പോൾ തുടങ്ങുക">Get Started Now</a>
+                    <p class="mt-4 text-sm text-subtle-text/70">Stop losing 1-2 hours per rep, per day.</p>
+                </div>
+            </div>
+        </header>
+        <main id="homepage-sections" class="pb-20">
+            <section id="about" class="py-20 md:py-24 bg-card-bg">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 class="section-title text-primary-blue" data-en="The Problem We Solve" data-hi="हम जिस समस्या का समाधान करते हैं" data-ta="நாம் தீர்க்கும் பிரச்சனை" data-ma="നാം പരിഹരിക്കുന്ന പ്രശ്നം">The Problem We Solve</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                        <div class="p-8 rounded-xl bg-gray-800 shadow-2xl border-t-4 border-accent-orange">
+                            <p class="text-6xl font-extrabold text-secondary-cyan mb-3">1-2h</p>
+                            <h3 class="text-xl font-semibold text-light-text mb-3">Time Wasted Daily</h3>
+                            <p class="text-subtle-text">Sales reps are drowning in administrative CRM updates and manual note-taking after every call.</p>
+                        </div>
+                         <div class="p-8 rounded-xl bg-gray-800 shadow-2xl border-t-4 border-accent-orange">
+                            <p class="text-6xl font-extrabold text-secondary-cyan mb-3">40%</p>
+                            <h3 class="text-xl font-semibold text-light-text mb-3">Selling Time Lost</h3>
+                            <p class="text-subtle-text">Productivity drain consumed by admin tasks rather than high-value customer engagement.</p>
+                        </div>
+                         <div class="p-8 rounded-xl bg-gray-800 shadow-2xl border-t-4 border-accent-orange">
+                            <p class="text-6xl font-extrabold text-secondary-cyan mb-3">60%</p>
+                            <h3 class="text-xl font-semibold text-light-text mb-3">Data Accuracy Risk</h3>
+                            <p class="text-subtle-text">Information quality suffers when data is rushed, crippling pipeline visibility and forecasting.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ----------------------------------------------------------- -->
+    <!-- DASHBOARD PAGE: Sales Focused Metrics -->
+    <!-- ----------------------------------------------------------- -->
+    <div id="dashboard-page" class="page">
+        <div class="app-container bg-card-bg shadow-xl">
+            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b border-gray-700 mb-6">
+                <div class="flex items-center space-x-2">
+                    <a href="#" onclick="showPage('homepage', this)" class="text-primary-blue hover:text-secondary-cyan text-2xl transition duration-200">
+                        <span class="material-icons">home</span>
+                    </a>
+                    <span class="text-xl font-bold text-secondary-cyan">AI <span class="text-light-text">Sales</span>.</span>
+                </div>
+                <div class="flex items-center space-x-4 mt-4 sm:mt-0">
+                    <select id="languageSelectorDashboard" class="px-3 py-1 rounded-md border border-primary-blue bg-dark-bg text-secondary-cyan font-semibold focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-200">
+                        <option value="en">English</option><option value="hi">हिन्दी</option><option value="ta">தமிழ்</option><option value="ma">മലയാളം</option>
+                    </select>
+                    <div class="text-subtle-text text-sm font-medium">
+                        <span id="repDetails"></span>
+                        <a href="#" id="logoutBtnApp" class="ml-3 text-primary-blue border border-primary-blue px-3 py-1 rounded-md hover:bg-primary-blue hover:text-light-text transition duration-200" data-en="Log Out" data-hi="लॉग आउट" data-ta="வெளியேறு" data-ma="പുറത്തുകടക്കുക">Log Out</a>
+                    </div>
+                </div>
+            </header>
+            <h2 class="text-2xl font-bold text-light-text mb-6" data-en="Sales Intelligence Dashboard" data-hi="बिक्री इंटेलिजेंस डैशबोर्ड" data-ta="விற்பனை நுண்ணறிவு டாஷ்போர்டு" data-ma="വിൽപ്പന ഇൻ്റലിജൻസ് ഡാഷ്‌ബോർഡ്">Sales Intelligence Dashboard</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- 1. Pipeline Health Card (formerly Weather) -->
+                <div class="p-6 rounded-xl bg-gray-800 shadow-lg border border-gray-700 card hover:border-secondary-cyan transition duration-200">
+                    <div class="flex items-center pb-3 mb-4 border-b border-accent-orange/70">
+                        <span class="material-icons text-secondary-cyan text-3xl mr-3">trending_up</span>
+                        <h3 class="text-light-text text-lg font-bold" data-en="Pipeline Health" data-hi="पाइपलाइन स्वास्थ्य" data-ta="பைபலைன் ஆரோக்கியம்" data-ma="പൈപ്പ്ലൈൻ ആരോഗ്യം">Pipeline Health</h3>
+                    </div>
+                    <div class="space-y-3 text-subtle-text">
+                        <p class="flex justify-between font-medium" data-en-label="Total Deals" data-hi-label="कुल सौदे" data-ta-label="மொத்த ஒப்பந்தங்கள்" data-ma-label="മൊത്തം ഡീലുകൾ">Total Deals: <span id="pipelineDeals" class="text-light-text">--</span></p>
+                        <p class="flex justify-between font-medium" data-en-label="Avg. Deal Size" data-hi-label="औसत सौदे का आकार" data-ta-label="சராசரி ஒப்பந்த அளவு" data-ma-label="ശരാശരി ഡീൽ വലുപ്പം">Avg. Deal Size: <span id="avgDealSize" class="text-light-text">--</span></p>
+                        <p class="flex justify-between font-medium" data-en-label="Closing Next 30 Days" data-hi-label="अगले 30 दिनों में बंद होगा" data-ta-label="அடுத்த 30 நாட்களில் முடிவடைகிறது" data-ma-label="അടുത്ത 30 ദിവസത്തിനുള്ളിൽ ക്ലോസിംഗ്">Closing Next 30 Days: <span id="closing30Days" class="text-light-text">--</span></p>
+                    </div>
+                    <div class="mt-4 text-sm text-subtle-text">
+                        <h4 class="text-primary-blue text-base font-semibold mb-2" data-en="Next Milestones" data-hi="अगले मील के पत्थर" data-ta="அடுத்த மைல்கற்கள்" data-ma="അടുത്ത നാഴികക്കല്ലുകൾ">Next Milestones</h4>
+                        <ul id="milestoneList" class="space-y-1 list-none p-0"></ul>
+                    </div>
+                </div>
+
+                <!-- 2. Deal Velocity Card (formerly Crop Progress) -->
+                <div class="p-6 rounded-xl bg-gray-800 shadow-lg border border-gray-700 card hover:border-secondary-cyan transition duration-200">
+                    <div class="flex items-center pb-3 mb-4 border-b border-accent-orange/70">
+                        <span class="material-icons text-secondary-cyan text-3xl mr-3">speed</span>
+                        <h3 class="text-light-text text-lg font-bold" data-en="Deal Velocity" data-hi="सौदे की गति" data-ta="ஒப்பந்த வேகம்" data-ma="ഡീൽ വേഗത">Deal Velocity</h3>
+                    </div>
+                    <div class="space-y-3 text-subtle-text">
+                        <p class="flex justify-between font-medium" data-en-label="Avg. Stage Duration" data-hi-label="औसत चरण अवधि" data-ta-label="சராசரி நிலை நீளம்" data-ma-label="ശരാശരി ഘട്ട ദൈർഘ്യം">Avg. Stage Duration: <span id="avgStageDuration" class="text-light-text">--</span></p>
+                        <p class="flex justify-between font-medium" data-en-label="Current Stage" data-hi-label="वर्तमान चरण" data-ta-label="தற்போதைய நிலை" data-ma-label="നിലവിലെ ഘട്ടം">Current Stage: <span id="currentStageValue" class="text-light-text">--</span></p>
+                        <div class="h-2 bg-gray-700 rounded-full mt-4 overflow-hidden">
+                            <div id="dealVelocityBar" class="h-full bg-secondary-cyan" style="width: 0%;"></div>
+                        </div>
+                        <p class="text-xs pt-2" data-en="Time remaining in current sales stage." data-hi="वर्तमान बिक्री चरण में शेष समय।" data-ta="தற்போதைய விற்பனை நிலையில் மீதமுள்ள நேரம்." data-ma="നിലവിലെ വിൽപ്പന ഘട്ടത്തിൽ ശേഷിക്കുന്ന സമയം.">Time remaining in current sales stage.</p>
+                    </div>
+                </div>
+
+                <!-- 3. CRM Data Score Card (formerly Water Stress) -->
+                <div class="p-6 rounded-xl bg-gray-800 shadow-lg border border-gray-700 card hover:border-secondary-cyan transition duration-200">
+                    <div class="flex items-center pb-3 mb-4 border-b border-accent-orange/70">
+                        <span class="material-icons text-secondary-cyan text-3xl mr-3">verified_user</span>
+                        <h3 class="text-light-text text-lg font-bold" data-en="CRM Data Integrity" data-hi="सीआरഎം डेटा अखंडता" data-ta="CRM தரவு ஒருமைப்பாடு" data-ma="CRM ഡാറ്റാ സമഗ്രത">CRM Data Integrity</h3>
+                    </div>
+                    <div class="space-y-3 text-subtle-text">
+                        <p class="flex justify-between font-medium" data-en-label="Overall Score" data-hi-label="समग्र स्कोर" data-ta-label="ஒட்டுமொத்த மதிப்பெண்" data-ma-label="മൊത്തത്തിലുള്ള സ്കോർ">Overall Score: <span id="integrityScore" class="text-light-text">--</span></p>
+                        <p class="flex justify-between font-medium" data-en-label="Accuracy Risk" data-hi-label="सटीकता जोखिम" data-ta-label="துல்லியம் இடர்" data-ma-label="കൃത്യത അപകടസാധ്യത">Accuracy Risk: <span id="accuracyRisk" data-risk-key="Low" class="text-light-text">--</span></p>
+                        <div class="h-2 bg-gray-700 rounded-full mt-4 overflow-hidden">
+                            <div id="dataIntegrityBar" class="h-full bg-primary-blue" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <p id="dataAdvice" class="mt-4 p-3 rounded-lg bg-primary-blue/30 text-light-text text-sm font-medium border-l-4 border-secondary-cyan"></p>
+                </div>
+
+                <!-- 4. Top Alerts Card -->
+                <div class="p-6 rounded-xl bg-gray-800 shadow-lg border border-gray-700 card lg:col-span-2 hover:border-secondary-cyan transition duration-200">
+                    <div class="flex items-center pb-3 mb-4 border-b border-accent-orange/70">
+                        <span class="material-icons text-secondary-cyan text-3xl mr-3">notifications_active</span>
+                        <h3 class="text-light-text text-lg font-bold" data-en="Priority Alerts & Coaching" data-hi="प्राथमिकता अलर्ट और कोचिंग" data-ta="முன்னுரிமை விழிப்பூட்டல்கள் மற்றும் பயிற்சி" data-ma="മുൻഗണന അലേർട്ടുകളും കോച്ചിംഗും">Priority Alerts & Coaching</h3>
+                    </div>
+                    <ul id="alertsList" class="list-none p-0 space-y-3 text-subtle-text">
+                        <!-- Alerts will be dynamically added here -->
+                    </ul>
+                </div>
+
+                <!-- 5. Atlas AI CTA Card -->
+                <div class="p-6 rounded-xl bg-gray-800 shadow-lg border border-gray-700 card flex flex-col justify-between ai-cta-card hover:border-secondary-cyan transition duration-200">
+                    <div class="flex items-center pb-3 mb-4 border-b border-accent-orange/70">
+                        <span class="material-icons text-secondary-cyan text-3xl mr-3">smart_toy</span>
+                        <h3 class="text-light-text text-lg font-bold" data-en="Atlas AI Assistant" data-hi="एटलस एआई सहायक" data-ta="அட்லஸ் AI உதவியாளர்" data-ma="അറ്റ്ലസ് AI അസിസ്റ്റൻ്റ്">Atlas AI Assistant</h3>
+                    </div>
+                    <p class="text-subtle-text mb-4" data-en="Get real-time feedback on your transcripts, ask for sales strategies, or instantly summarize complex calls." data-hi="अपने प्रतिलेखों पर रीयल-टाइम प्रतिक्रिया प्राप्त करें, बिक्री रणनीतियों के लिए पूछें, या जटिल कॉलों को तुरंत संक्षेप में बताएं।" data-ta="உங்கள் டிரான்ஸ்கிரிப்டுகளில் நிகழ்நேர பின்னூட்டம் பெறவும், விற்பனை உத்திகளைக் கேட்கவும் அல்லது சிக்கலான அழைப்புகளை உடனடியாக சுருக்கவும்." data-ma="നിങ്ങളുടെ ട്രാൻസ്ക്രിപ്റ്റുകളിൽ തത്സമയ ഫീഡ്‌ബാക്ക് നേടുക, വിൽപ്പന തന്ത്രങ്ങൾ ചോദിക്കുക, അല്ലെങ്കിൽ സങ്കീർണ്ണമായ കോളുകൾ തൽക്ഷണം സംഗ്രഹിക്കുക.">Get real-time feedback on your transcripts, ask for sales strategies, or instantly summarize complex calls.</p>
+                    <a href="#" onclick="showPage('ai-page')" class="py-3 bg-accent-orange text-dark-bg text-lg font-bold rounded-lg shadow-xl hover:bg-orange-600 transition duration-300 transform hover:scale-[1.01] text-center action-button" data-en="Launch Atlas Chat" data-hi="एटलस चैट लॉन्च करें" data-ta="அட்லஸ் அரட்டையை தொடங்கவும்" data-ma="അറ്റ്ലസ് ചാറ്റ് സമാരംഭിക്കുക">Launch Atlas Chat</a>
+                </div>
+
+                <!-- 6. Revenue Projection Chart (formerly Market Chart) -->
+                <div class="p-6 rounded-xl bg-gray-800 shadow-lg border border-gray-700 card hover:border-secondary-cyan transition duration-200">
+                    <div class="flex items-center pb-3 mb-4 border-b border-accent-orange/70">
+                        <span class="material-icons text-secondary-cyan text-3xl mr-3">query_stats</span>
+                        <h3 class="text-light-text text-lg font-bold" data-en="Revenue Trend" data-hi="राजस्व प्रवृत्ति" data-ta="வருவாய் போக்கு" data-ma="വരുമാന ട്രെൻഡ്">Revenue Trend</h3>
+                    </div>
+                    <p class="text-subtle-text mb-2" data-en-label="Current Pipeline Value" data-hi-label="वर्तमान पाइपलाइन मूल्य" data-ta-label="தற்போதைய பைபலைன் மதிப்பு" data-ma-label="നിലവിലെ പൈപ്പ്ലൈൻ മൂല്യം">Current Pipeline Value: <span id="currentPipelineValue" class="text-light-text font-semibold">--</span></p>
+                    <div class="h-40 chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <p id="coachingInsight" data-advice-key="1" class="mt-4 p-3 rounded-lg bg-gray-700 text-subtle-text text-sm font-medium border-l-4 border-primary-blue"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ----------------------------------------------------------- -->
+    <!-- AI CHAT PAGE: Atlas Assistant -->
+    <!-- ----------------------------------------------------------- -->
+    <div id="ai-page" class="page">
+        <div class="min-h-screen flex flex-col">
+            <header class="bg-primary-blue p-5 flex justify-between items-center text-light-text shadow-lg">
+                <a href="#" onclick="showPage('dashboard-page', this)" class="flex items-center text-light-text hover:text-secondary-cyan transition duration-200">
+                    <span class="material-icons mr-2">arrow_back</span> <span class="hidden sm:inline" data-en="Back to Dashboard" data-hi="डैशबोर्ड पर वापस" data-ta="டாஷ்போர்டுக்குத் திரும்பு" data-ma="ഡാഷ്‌ബോർഡിലേക്ക് മടങ്ങുക">Back to Dashboard</span>
+                </a>
+                <h2 class="text-2xl font-bold hidden md:block">Atlas AI Advisor</h2>
+                <div class="flex items-center space-x-4">
+                    <select id="languageSelectorAi" class="px-3 py-1 rounded-md border border-light-text/30 bg-primary-blue/50 text-light-text font-semibold hover:bg-secondary-cyan transition duration-200 focus:ring-secondary-cyan focus:border-secondary-cyan">
+                        <option value="en">English</option><option value="hi">हिन्दी</option><option value="ta">தமிழ்</option><option value="ma">മലയാളം</option>
+                    </select>
+                    <div class="px-3 py-1 rounded-full text-sm font-semibold ai-status bg-primary-blue/70">
+                        <span id="aiStatus" class="status online">Online</span>
+                    </div>
+                </div>
+            </header>
+            <div id="chatBox" class="flex-grow overflow-y-auto p-4 space-y-4"></div>
+            <div class="p-4 flex items-center border-t border-gray-700 bg-card-bg">
+                <input type="text" id="textInput" placeholder="Ask Atlas for coaching, summaries, or insights..." class="flex-grow p-3 rounded-full border border-gray-700 mr-3 text-light-text bg-dark-bg focus:border-secondary-cyan focus:ring-1 focus:ring-secondary-cyan transition duration-200">
+                <button id="voiceBtn" class="text-primary-blue hover:text-accent-orange text-3xl transition duration-200"><span class="material-icons">mic</span></button>
+                <button id="sendBtn" class="ml-3 text-primary-blue hover:text-accent-orange text-3xl transition duration-200"><span class="material-icons">send</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ----------------------------------------------------------- -->
+    <!-- TRANSCRIPT ANALYSIS PAGE (formerly Diagnosis) -->
+    <!-- ----------------------------------------------------------- -->
+    <div id="transcript-analysis-page" class="page">
+        <div class="app-container bg-card-bg shadow-xl">
+            <header class="flex items-center justify-between p-4 border-b border-gray-700 mb-6">
+                <div class="flex items-center space-x-2">
+                    <a href="#" onclick="showPage('dashboard-page', this)" class="text-primary-blue hover:text-secondary-cyan text-2xl transition duration-200">
+                        <span class="material-icons">arrow_back</span>
+                    </a>
+                    <span class="text-xl font-bold text-secondary-cyan">AI <span class="text-light-text">Sales</span>.</span>
+                </div>
+                <h2 class="text-2xl font-bold text-light-text" data-en="Transcript Analysis Tool" data-hi="प्रतिलेख विश्लेषण उपकरण" data-ta="டிரான்ஸ்கிரிப்ட் பகுப்பாய்வு கருவி" data-ma="ട്രാൻസ്ക്രിപ്റ്റ് വിശകലന ഉപകരണം">Transcript Analysis Tool</h2>
+            </header>
+            <section class="space-y-6">
+                <p class="text-subtle-text" data-en="Paste your raw sales call transcript below for instant analysis. Atlas will extract key data points, pain points, budget signals, and sentiment." data-hi="त्वरित विश्लेषण के लिए अपनी कच्ची बिक्री कॉल प्रतिलेख नीचे पेस्ट करें। एटलस मुख्य डेटा बिंदुओं, दर्द बिंदुओं, बजट संकेतों और भावना को निकालेगा।" data-ta="உடனடி பகுப்பாய்வுக்கு உங்கள் மூல விற்பனை அழைப்பு டிரான்ஸ்கிரிப்டை கீழே ஒட்டவும். அட்லஸ் முக்கிய தரவு புள்ளிகள், வலி புள்ளிகள், பட்ஜெட் சிக்னல்கள் மற்றும் உணர்வுகளை பிரித்தெடுக்கும்." data-ma="തൽക്ഷണ വിശകലനത്തിനായി നിങ്ങളുടെ അസംസ്കൃത വിൽപ്പന കോൾ ട്രാൻസ്ക്രിപ്റ്റ് താഴെ ഒട്ടിക്കുക. പ്രധാന ഡാറ്റാ പോയിൻ്റുകൾ, വേദന പോയിൻ്റുകൾ, ബഡ്ജറ്റ് സിഗ്നലുകൾ, വികാരം എന്നിവ അറ്റ്ലസ് വേർതിരിച്ചെടുക്കും.">Paste your raw sales call transcript below for instant analysis. Atlas will extract key data points, pain points, budget signals, and sentiment.</p>
+                
+                <textarea id="transcriptInput" rows="8" placeholder="Paste full call transcript here (Speaker A: ..., Speaker B: ...)" class="w-full p-3 rounded-lg bg-dark-bg border border-gray-700 text-light-text focus:border-secondary-cyan focus:ring-1 focus:ring-secondary-cyan transition duration-200"></textarea>
+                
+                <button onclick="runAnalysis()" class="w-full py-3 bg-accent-orange text-dark-bg font-bold rounded-lg hover:bg-orange-600 transition duration-300 action-button" data-en="Run Analysis" data-hi="विश्लेषण चलाएँ" data-ta="பகுப்பாய்வை இயக்கவும்" data-ma="വിശകലനം പ്രവർത്തിപ്പിക്കുക">Run Analysis</button>
+
+                <p id="analysisLoading" class="text-center font-semibold text-secondary-cyan" style="display: none;">
+                    <span class="material-icons spin-animation align-middle mr-2">sync</span> 
+                    <span data-en="Processing transcript and structuring data. Please wait..." data-hi="प्रतिलेख को संसाधित किया जा रहा है और डेटा संरचित किया जा रहा है। कृपया प्रतीक्षा करें..." data-ta="டிரான்ஸ்கிரிப்டை செயலாக்குகிறது மற்றும் தரவை கட்டமைக்கிறது. தயவுசெய்து காத்திருக்கவும்..." data-ma="ട്രാൻസ്സ്ക്രിപ്റ്റ് പ്രോസസ്സ് ചെയ്യുന്നു, ഡാറ്റ ഘടനപ്പെടുത്തുന്നു. ദയവായി കാത്തിരിക്കുക...">Processing transcript and structuring data. Please wait...</span>
+                </p>
+                
+                <div id="analysisResult" class="p-6 mt-6 rounded-xl bg-gray-900 border-l-4 border-accent-orange shadow-lg" style="display: none;">
+                    
+                    <!-- Structured JSON Output Mockup (New Enhancement) -->
+                    <h4 class="text-xl font-bold mb-3 text-secondary-cyan" data-en="Structured CRM Data Output" data-hi="संरचित सीआरഎം डेटा आउटपुट" data-ta="கட்டமைக்கப்பட்ட CRM தரவு வெளியீடு" data-ma="ഘടനയുള്ള CRM ഡാറ്റാ ഔട്ട്പുട്ട്">Structured CRM Data Output:</h4>
+                    <pre id="jsonOutput" class="p-3 bg-dark-bg border border-gray-700 rounded-lg overflow-x-auto text-sm text-green-400 font-mono mb-6"></pre>
+                    
+                    <h4 id="resultTitle" class="text-lg font-bold mb-3 text-accent-orange">Transcript Summary:</h4>
+                    <p id="resultSummary" class="text-subtle-text italic mb-4"></p>
+                    
+                    <h4 class="text-lg font-bold mt-4 text-primary-blue" data-en="Key Extracted Fields" data-hi="मुख्य निकाले गए फ़ീल्ड" data-ta="முக்கிய பிரித்தெடுக்கப்பட்ட புலங்கள்" data-ma="പ്രധാന വേർതിരിച്ചെടുത്ത ഫീൽഡുകൾ">Key Extracted Fields:</h4>
+                    <ul id="extractedFields" class="list-disc pl-5 text-light-text space-y-1 mt-2 text-sm"></ul>
+                    
+                    <a href="#" onclick="showPage('ai-page')" class="mt-6 py-3 px-6 bg-secondary-cyan text-dark-bg font-bold rounded-lg hover:bg-primary-blue transition duration-300 transform hover:scale-[1.01] inline-block text-center action-button small-btn" data-en="Ask Atlas for Coaching" data-hi="कोचिंग के लिए एटलस से पूछें" data-ta="பயிற்சிக்கு அட்லஸிடம் கேட்கவும்" data-ma="കോച്ചിംഗിനായി അറ്റ്ലസിനോട് ചോദിക്കുക">Ask Atlas for Coaching</a>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <!-- Empty pages placeholder for navigation structure -->
+    <div id="transcript-library-page" class="page">
+        <div class="app-container bg-card-bg shadow-xl">
+             <header class="flex items-center justify-between p-4 border-b border-gray-700 mb-6">
+                <div class="flex items-center space-x-2">
+                    <a href="#" onclick="showPage('dashboard-page', this)" class="text-primary-blue hover:text-secondary-cyan text-2xl transition duration-200">
+                        <span class="material-icons">arrow_back</span>
+                    </a>
+                    <span class="text-xl font-bold text-secondary-cyan">AI <span class="text-light-text">Sales</span>.</span>
+                </div>
+                <h2 class="text-2xl font-bold text-light-text" data-en="Transcript Library" data-hi="प्रतिलेख पुस्तकालय" data-ta="டிரான்ஸ்கிரிப்ட் நூலகம்" data-ma="ട്രാൻസ്ക്രിപ്റ്റ് ലൈബ്രറി">Transcript Library</h2>
+            </header>
+            <p class="text-subtle-text" data-en="This page displays all processed transcripts and their extracted data points. (Mock Content)" data-hi="यह पृष्ठ सभी संसाधित प्रतिलेखों और उनके निकाले गए डेटा बिंदुओं को प्रदर्शित करता है। (मॉक सामग्री)" data-ta="இந்த பக்கம் அனைத்து செயலாக்கப்பட்ட டிரான்ஸ்கிரிப்டுகளையும் மற்றும் அவற்றின் பிரித்தெடுக்கப்பட்ட தரவு புள்ளிகளையும் காட்டுகிறது. (போலி உள்ளடக்கம்)" data-ma="ഈ പേജ് പ്രോസസ്സ് ചെയ്ത എല്ലാ ട്രാൻസ്ക്രിപ്റ്റുകളും അവയുടെ വേർതിരിച്ചെടുത്ത ഡാറ്റാ പോയിൻ്റുകളും പ്രദർശിപ്പിക്കുന്നു. (മോക്ക് ഉള്ളടക്കം)">This page displays all processed transcripts and their extracted data points. (Mock Content)</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6" id="transcriptGrid">
+                <!-- Content will be dynamically generated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mock Resource page structure for completeness -->
+    <div id="resources-page" class="page">
+        <div class="app-container bg-card-bg shadow-xl">
+             <header class="flex items-center justify-between p-4 border-b border-gray-700 mb-6">
+                <div class="flex items-center space-x-2">
+                    <a href="#" onclick="showPage('dashboard-page', this)" class="text-primary-blue hover:text-secondary-cyan text-2xl transition duration-200">
+                        <span class="material-icons">arrow_back</span>
+                    </a>
+                    <span class="text-xl font-bold text-secondary-cyan">AI <span class="text-light-text">Sales</span>.</span>
+                </div>
+                <h2 class="text-2xl font-bold text-light-text" data-en="Sales Resources" data-hi="बिक्री संसाधन" data-ta="விற்பனை வளங்கள்" data-ma="വിൽപ്പന വിഭവങ്ങൾ">Sales Resources</h2>
+            </header>
+            <p class="text-subtle-text" data-en="Access best practice guides, integration documents, and coaching articles." data-hi="सर्वोत्तम अभ्यास गाइड, एकीकरण दस्तावेज़ और कोचिंग लेखों तक पहुँचें।" data-ta="சிறந்த நடைமுறை வழிகாட்டிகள், ஒருங்கிணைப்பு ஆவணங்கள் மற்றும் பயிற்சி கட்டுரைகளை அணுகவும்." data-ma="മികച്ച പരിശീലന ഗൈഡുകൾ, സംയോജന രേഖകൾ, കോച്ചിംഗ് ലേഖനങ്ങൾ എന്നിവ ആക്സസ് ചെയ്യുക.">Access best practice guides, integration documents, and coaching articles.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6" id="resourceGrid">
+                <!-- Content will be dynamically generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals (Auth) -->
+    <div id="onboardingModal" class="fixed inset-0 bg-black/70 flex justify-center items-center z-50 opacity-0 invisible transition duration-300">
+        <div class="bg-card-bg p-8 rounded-xl w-11/12 max-w-md text-center shadow-2xl relative">
+            <a href="#" class="absolute top-3 right-5 text-subtle-text text-3xl hover:text-light-text" onclick="closeModal('onboardingModal')">&times;</a>
+            <span class="text-4xl block mb-4">🚀</span>
+            <h2 class="text-2xl font-bold text-primary-blue mb-2" data-en="Setup Your Profile" data-hi="अपना प्रोफ़ाइल सेट करें" data-ta="உங்கள் சுயவிவரத்தை அமைக்கவும்" data-ma="നിങ്ങളുടെ പ്രൊഫൈൽ സജ്ജമാക്കുക">Setup Your Profile</h2>
+            <p class="text-subtle-text mb-6" data-en="Let's personalize your Sales Dashboard." data-hi="आइए आपके बिक्री डैशबोर्ड को वैयक्तिकृत करें।" data-ta="உங்கள் விற்பனை டாஷ்போர்டை தனிப்பயனாக்குவோம்." data-ma="നിങ്ങളുടെ വിൽപ്പന ഡാഷ്‌ബോർഡ് വ്യക്തിഗതമാക്കാം.">Let's personalize your Sales Dashboard.</p>
+            <form id="onboardingForm" class="space-y-4">
+                <input type="text" id="salesName" placeholder="Your Name" required class="w-full p-3 rounded-lg bg-dark-bg border border-gray-700 text-light-text focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-200">
+                <input type="text" id="teamName" placeholder="Your Team/Region (e.g., APAC Enterprise)" required class="w-full p-3 rounded-lg bg-dark-bg border border-gray-700 text-light-text focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-200">
+                <input type="text" id="targetQuota" placeholder="Target Quota (e.g., $150,000)" required class="w-full p-3 rounded-lg bg-dark-bg border border-gray-700 text-light-text focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-200">
+                <label for="startDate" class="block text-left text-sm font-medium text-subtle-text" data-en="Quarter Start Date:" data-hi="तिमाही प्रारंभ तिथि:" data-ta="காலாண்டு தொடக்க தேதி:" data-ma="പാദാരംഭ തീയതി:">Quarter Start Date:</label>
+                <input type="date" id="startDate" required class="w-full p-3 rounded-lg bg-dark-bg border border-gray-700 text-light-text focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-200">
+                <button type="submit" class="w-full py-3 bg-accent-orange text-dark-bg font-bold rounded-lg hover:bg-orange-600 transition duration-300 action-button" data-en="Go to Dashboard" data-hi="डैशबोर्ड पर जाएं" data-ta=" டாஷ்போர்டுக்குச் செல்லவும்" data-ma="ഡാഷ്‌ബോർഡിലേക്ക് പോകുക">Go to Dashboard</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="loginModal" class="fixed inset-0 bg-black/70 flex justify-center items-center z-50 opacity-0 invisible transition duration-300">
+        <div class="bg-card-bg p-8 rounded-xl w-11/12 max-w-md text-center shadow-2xl relative">
+            <a href="#" class="absolute top-3 right-5 text-subtle-text text-3xl hover:text-light-text" onclick="closeModal('loginModal')">&times;</a>
+            <span class="text-4xl block mb-4">🔑</span>
+            <h2 class="text-2xl font-bold text-primary-blue mb-2" data-en="Welcome Back!" data-hi="वापसी पर आपका स्वागत है!" data-ta="மீண்டும் வருக!" data-ma="തിരികെ സ്വാഗതം!">Welcome Back!</h2>
+            <p class="text-subtle-text mb-6" data-en="Enter your credentials to access the sales intelligence dashboard." data-hi="बिक्री इंटेलिजेंस डैशबोर्ड तक पहुंचने के लिए अपनी क्रेडेंशियल दर्ज करें।" data-ta="விற்பனை நுண்ணறிவு டாஷ்போர்டை அணுக உங்கள் சான்றுகளை உள்ளிடவும்." data-ma="വിൽപ്പന ഇൻ്റലിജൻസ് ഡാഷ്‌ബോർഡ് ആക്‌സസ് ചെയ്യാൻ നിങ്ങളുടെ ക്രെഡൻഷ്യലുകൾ നൽകുക.">Enter your credentials to access the sales intelligence dashboard.</p>
+            <p id="loginError" class="text-red-500 text-sm mb-4" style="display: none;" data-en="Invalid username or password (try 'rep' / 'pass')." data-hi="अमान्य उपयोगकर्ता नाम या पासवर्ड (परीक्षण 'rep' / 'pass')।" data-ta="தவறான பயனர்பெயர் அல்லது கடவுச்சொல் ('rep' / 'pass' முயற்சிக்கவும்)." data-ma="തെറ്റായ ഉപയോക്തൃനാമം അല്ലെങ്കിൽ പാസ്‌വേർഡ് ('rep' / 'pass' ശ്രമിക്കുക).">Invalid username or password (try 'rep' / 'pass').</p>
+            <form id="loginForm" class="space-y-4">
+                <input type="text" id="loginUsername" placeholder="Username (try 'rep')" required class="w-full p-3 rounded-lg bg-dark-bg border border-gray-700 text-light-text focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-200">
+                <input type="password" id="loginPassword" placeholder="Password (try 'pass')" required class="w-full p-3 rounded-lg bg-dark-bg border border-gray-700 text-light-text focus:ring-secondary-cyan focus:border-secondary-cyan transition duration-200">
+                <button type="submit" class="w-full py-3 bg-primary-blue text-light-text font-bold rounded-lg hover:bg-secondary-cyan transition duration-300 action-button" data-en="Log In" data-hi="लॉग इन करें" data-ta="உள்நுழைக" data-ma="ലോഗിൻ ചെയ്യുക">Log In</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Floating AI Assistant CTA -->
+    <a href="#" id="floatingAiCta" class="fixed bottom-8 right-8 bg-primary-blue text-light-text p-4 rounded-full shadow-2xl flex items-center space-x-2 font-bold hover:bg-secondary-cyan transition duration-300 border-2 border-accent-orange z-40" onclick="showPage('ai-page')" style="display:none;">
+        <span class="material-icons">smart_toy</span>
+        <span class="hidden sm:inline" data-en="Chat with Atlas" data-hi="एटलस के साथ चैट करें" data-ta="அட்லஸுடன் அரட்டையடிக்கவும்" data-ma="അറ്റ്ലസുമായി ചാറ്റ് ചെയ്യുക">Chat with Atlas</span>
+    </a>
+
+    <script>
+// --- UI Element References ---
+const onboardingModal = document.getElementById("onboardingModal");
+const onboardingForm = document.getElementById("onboardingForm");
+const loginModal = document.getElementById("loginModal");
+const loginForm = document.getElementById("loginForm");
+const loginBtn = document.getElementById("loginBtn");
+const signupBtn = document.getElementById("signupBtn");
+const heroSignupBtn = document.getElementById("heroSignupBtn");
+const navDashboardLink = document.getElementById("navDashboardLink");
+
+const logoutBtn = document.getElementById("logoutBtn");
+const logoutBtnApp = document.getElementById("logoutBtnApp");
+
+const languageSelectorDashboard = document.getElementById('languageSelectorDashboard');
+const languageSelectorAi = document.getElementById('languageSelectorAi');
+const allPages = document.querySelectorAll(".page");
+
+const floatingAiCta = document.getElementById('floatingAiCta');
+
+// --- API Keys ---
+// Note: Using a placeholder key here.
+const GEMINI_API_KEY = ''; 
+const GEMINI_TEXT_MODEL = 'gemini-2.5-flash-preview-09-2025';
+
+// --- Localization Data (Sales Context) ---
+const LOCALE_DATA = {
+    'hi': {
+        'severe_tag': 'तत्काल', 'warning_tag': 'ध्यान दें', 'info_tag': 'जानकारी',
+        'alert_1': 'डील: **Acme Corp** 7 दिनों से एक ही चरण में है। मैन्युअल हस्तक्षेप आवश्यक है।',
+        'alert_2': 'कोचिंग: पिछले 5 कॉलों में **बजट** के बारे में पूछने में विफल। स्क्रिप्ट की समीक्षा करें।',
+        'alert_3': 'पाइपलाइन मूल्य **$10K** से अधिक बढ़ गया।',
+        'stages': { 'Qualification': 'योग्यता', 'Discovery': 'खोज', 'Proposal': 'प्रस्ताव', 'Negotiation': 'बातचीत', 'Closed Won': 'बंद जीत' },
+        'risk_level': { 'Optimal': 'उत्कृष्ट', 'Moderate': 'मध्यम जोखिम', 'Severe': 'उच्च जोखिम' },
+        'coaching_insight': { 'High Confidence': 'उच्च जीत की संभावना। गति बनाए रखें।', 'Hold for Review': 'यह डील जोखिम भरी है। अपने प्रबंधक के साथ समीक्षा करें।', 'Low Engagement': 'सफलता के लिए अगले चरण की कार्रवाई की आवश्यकता है।' }
+    },
+    'ta': {
+        'severe_tag': 'உடனடி', 'warning_tag': 'கவனம்', 'info_tag': 'தகவல்',
+        'alert_1': 'ஒப்பந்தம்: **Acme Corp** 7 நாட்களாக ஒரே நிலையில் உள்ளது. கையேடு தலையீடு தேவை.',
+        'alert_2': 'பயிற்சி: கடந்த 5 அழைப்புகளில் **பட்ஜெட்** பற்றி கேட்க தவறிவிட்டது. ஸ்கிரிப்டை மதிப்பாய்வு செய்யவும்.',
+        'alert_3': 'பைபலைன் மதிப்பு **$10K**க்கு மேல் அதிகரித்துள்ளது.',
+        'stages': { 'Qualification': 'தகுதி', 'Discovery': 'கண்டறிதல்', 'Proposal': 'யோசனை', 'Negotiation': 'பேச்சுவார்த்தை', 'Closed Won': 'முடிந்தது வென்றது' },
+        'risk_level': { 'Optimal': 'சிறந்தது', 'Moderate': 'மிதமான இடர்', 'Severe': 'அதிக இடர்' },
+        'coaching_insight': { 'High Confidence': 'அதிக வெற்றி வாய்ப்பு. வேகத்தை பராமரிக்கவும்.', 'Hold for Review': 'இந்த ஒப்பந்தம் அபாயகரமானது. உங்கள் மேலாளருடன் மதிப்பாய்வு செய்யவும்.', 'Low Engagement': 'வெற்றிக்கு அடுத்த கட்ட நடவடிக்கை தேவை.' }
+    },
+    'ma': {
+        'severe_tag': 'അടിയന്തിരം', 'warning_tag': 'ശ്രദ്ധിക്കുക', 'info_tag': 'വിവരം',
+        'alert_1': 'ഡീൽ: **Acme Corp** 7 ദിവസമായി ഒരേ ഘട്ടത്തിലാണ്. മാനുവൽ ഇടപെടൽ ആവശ്യമാണ്.',
+        'alert_2': 'കോച്ചിംഗ്: കഴിഞ്ഞ 5 കോളുകളിൽ **ബഡ്ജറ്റിനെ**ക്കുറിച്ച് ചോദിക്കാൻ പരാജയപ്പെട്ടു. സ്ക്രിപ്റ്റ് അവലോകനം ചെയ്യുക.',
+        'alert_3': 'പൈപ്പ്ലൈൻ മൂല്യം **$10K**-ൽ കൂടുതൽ വർദ്ധിച്ചു.',
+        'stages': { 'Qualification': 'യോഗ്യത', 'Discovery': 'കണ്ടെത്തൽ', 'Proposal': 'നിർദ്ദേശം', 'Negotiation': 'ചർച്ച', 'Closed Won': 'അടച്ചു വിജയിച്ചു' },
+        'risk_level': { 'Optimal': 'മികച്ചത്', 'Moderate': 'മിതമായ അപകടസാധ്യത', 'Severe': 'ഉയർന്ന അപകടസാധ്യത' },
+        'coaching_insight': { 'High Confidence': 'ഉയർന്ന വിജയ സാധ്യത. വേഗത നിലനിർത്തുക.', 'Hold for Review': 'ഈ ഡീൽ അപകടകരമാണ്. നിങ്ങളുടെ മാനേജരുമായി അവലോകനം ചെയ്യുക.', 'Low Engagement': 'വിജയത്തിനായി അടുത്ത ഘട്ട നടപടി ആവശ്യമാണ്.' }
+    },
+    'en': {
+        'severe_tag': 'URGENT', 'warning_tag': 'COACHING', 'info_tag': 'INFO',
+        'alert_1': 'DEAL: **Acme Corp** stalled in stage for 7 days. Manual intervention required.',
+        'alert_2': 'COACHING: Failed to ask about **Budget** in last 5 calls. Review script.',
+        'alert_3': 'Pipeline value increased by over **$10K**. Congrats!',
+        'stages': { 'Qualification': 'Qualification', 'Discovery': 'Discovery', 'Proposal': 'Proposal', 'Negotiation': 'Negotiation', 'Closed Won': 'Closed Won' },
+        'risk_level': { 'Optimal': 'Optimal', 'Moderate': 'Moderate Risk', 'Severe': 'High Risk' },
+        'coaching_insight': { 'High Confidence': 'High confidence in close. Maintain momentum.', 'Hold for Review': 'This deal is high risk. Review with your manager.', 'Low Engagement': 'Requires next step action for success.' }
+    }
+};
+
+// --- Mock Data for Sales Dashboard ---
+const SCENARIO_DATA = [
+    // Scenario 1: Optimal (Baseline)
+    {
+        sales: {
+            totalDeals: 18,
+            avgDealSize: '$12,500',
+            closing30Days: '$45,000',
+            pipelineValue: '1,500,000',
+            milestones: [{ day: 'Wed', name: 'Acme Demo' }, { day: 'Fri', name: 'Beta Launch' }, { day: 'Mon', name: 'Proposal Send' }],
+            currentStageKey: 'Negotiation',
+            avgStageDuration: '14 days',
+            dealVelocityProgress: 70,
+            revenueChart: [1450, 1500, 1480, 1520, 1550, 1500, 1530],
+            coachingKey: 1, // High Confidence
+        },
+        dataIntegrity: {
+            score: 88,
+            riskKey: 'Optimal',
+            advice: 'Data integrity is **optimal**. Keep leveraging Atlas to automate summaries.',
+        },
+        analysisResults: {
+            PainPoint: "Manual data entry is consuming 1.5 hours daily for each rep.",
+            BudgetSignal: "$50k allocated, but looking for cost optimization.",
+            Timeline: "Requires implementation before end of Q4.",
+            Sentiment: "Positive but skeptical about integration complexity."
+        }
+    },
+    // Scenario 2: High Risk / Coaching Required
+    {
+        sales: {
+            totalDeals: 25,
+            avgDealSize: '$8,200',
+            closing30Days: '$12,000',
+            pipelineValue: '1,100,000',
+            milestones: [{ day: 'Tue', name: 'Legal Review' }, { day: 'Fri', name: 'Renewal Discussion' }, { day: 'Mon', name: 'Follow-up Call' }],
+            currentStageKey: 'Discovery',
+            avgStageDuration: '25 days',
+            dealVelocityProgress: 30,
+            revenueChart: [1500, 1450, 1300, 1200, 1150, 1100, 1120],
+            coachingKey: 2, // Hold for Review
+        },
+        dataIntegrity: {
+            score: 61,
+            riskKey: 'Severe',
+            advice: 'Integrity score is **low (61%)**. Fields like **Next Steps** are frequently empty. Use Atlas immediately after calls.',
+        },
+        analysisResults: {
+            PainPoint: "The prospect is skeptical about the ROI and needs proof points.",
+            BudgetSignal: "Confirmed budget is available for solutions under $10k.",
+            Timeline: "Pilot needed next month; budget expires in 6 weeks.",
+            Sentiment: "Neutral/Cautious, frequently asking about competitors."
+        }
+    },
+    // Scenario 3: Stagnant Pipeline / Low Engagement
+    {
+        sales: {
+            totalDeals: 12,
+            avgDealSize: '$30,000',
+            closing30Days: '$0',
+            pipelineValue: '1,800,000',
+            milestones: [{ day: 'Thu', name: 'No Contact' }, { day: 'Mon', name: 'Internal Delay' }, { day: 'Tue', name: 'Gatekeeper Follow-up' }],
+            currentStageKey: 'Proposal',
+            avgStageDuration: '40 days',
+            dealVelocityProgress: 85,
+            revenueChart: [1700, 1750, 1800, 1800, 1800, 1800, 1780],
+            coachingKey: 3, // Low Engagement
+        },
+        dataIntegrity: {
+            score: 75,
+            riskKey: 'Moderate',
+            advice: 'Data is generally accurate, but **Stakeholder Titles** are often generic. Get named contacts.',
+        },
+        analysisResults: {
+            PainPoint: "Procurement requires three competitive bids before moving forward.",
+            BudgetSignal: "Budget confirmed at $30k, ready to spend.",
+            Timeline: "Indefinite delay, waiting for internal approval cycle (3-6 months).",
+            Sentiment: "Frustrated with internal bureaucracy."
+        }
+    }
+];
+
+// Determine which scenario to load based on a simple cycle (0, 1, 2)
+const CURRENT_SCENARIO_INDEX = (new Date().getDay() % SCENARIO_DATA.length);
+const DEMO_DATA = SCENARIO_DATA[CURRENT_SCENARIO_INDEX];
+// ----------------------------------------------------------------------
+
+
+// ----------------------------------------------------------------------
+// --- CORE LOGIC: TTS UTILITIES (Copied from previous code) ---
+// ----------------------------------------------------------------------
+
+// Helper to convert base64 audio data to ArrayBuffer
+function base64ToArrayBuffer(base64) {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+// Helper to convert PCM audio data (from API) into a playable WAV Blob
+function pcmToWav(pcmData, sampleRate) {
+    const buffer = new ArrayBuffer(44 + pcmData.length * 2);
+    const view = new DataView(buffer);
+
+    function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    }
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + pcmData.length * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 1 * 2, true);
+    view.setUint16(32, 1 * 2, true);
+    view.setUint16(34, 16, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, pcmData.length * 2, true);
+
+    let offset = 44;
+    for (let i = 0; i < pcmData.length; i++) {
+        view.setInt16(offset, pcmData[i], true);
+        offset += 2;
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+}
+
+const VOICE_MAP = {
+    'en': { voiceName: 'Kore', langCode: 'en-US' },
+    'hi': { voiceName: 'Kore', langCode: 'hi-IN' }, 
+    'ta': { voiceName: 'Despina', langCode: 'ta-IN' },
+    'ma': { voiceName: 'Charon', langCode: 'en-US' } 
+};
+
+async function getTtsAudio(text, lang) {
+    if (!GEMINI_API_KEY) return null; // Skip if no API key is set
+
+    const config = VOICE_MAP[lang] || VOICE_MAP['en'];
+    const systemPrompt = `Speak the following text in a professional, firm tone as the Sales AI Assistant Atlas. Respond concisely in the provided language.`;
+    
+    const cleanText = text.replace(/<\/?strong>|<\/?u>/g, '');
+
+    const payload = {
+        contents: [{ parts: [{ text: cleanText }] }],
+        generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: config.voiceName } }
+            }
+        },
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+    };
+    
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${GEMINI_API_KEY}`;
+    
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`TTS API error: ${response.status} - ${response.statusText}`);
+
+        const result = await response.json();
+        const part = result?.candidates?.[0]?.content?.parts?.[0];
+        const audioData = part?.inlineData?.data;
+        const mimeType = part?.inlineData?.mimeType;
+
+        if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
+            const match = mimeType.match(/rate=(\d+)/);
+            const sampleRate = match ? parseInt(match[1], 10) : 16000;
+            const pcmDataBuffer = base64ToArrayBuffer(audioData);
+            const pcm16 = new Int16Array(pcmDataBuffer);
+            const wavBlob = pcmToWav(pcm16, sampleRate);
+            return URL.createObjectURL(wavBlob);
+        } else {
+            console.warn("TTS response missing valid audio data.");
+            return null;
+        }
+
+    } catch (error) {
+        console.error("TTS error:", error);
+        return null;
+    }
+}
+
+// ----------------------------------------------------------------------
+// --- CORE LOGIC: LOCALIZATION ---
+// ----------------------------------------------------------------------
+
+function updateContentLanguage(lang) {
+    const locale = LOCALE_DATA[lang] || LOCALE_DATA['en'];
+    const profile = JSON.parse(localStorage.getItem("salesProfile")) || { team: 'Team' };
+    const teamName = profile.team;
+
+    // 1. Update text content for elements with data attributes
+    document.querySelectorAll('[data-en]').forEach(element => {
+        const newText = element.getAttribute(`data-${lang}`) || element.getAttribute('data-en');
+        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+            element.placeholder = newText;
+        } else if (newText) {
+            const span = element.querySelector('span');
+            if (span && element.tagName !== 'A' && element.tagName !== 'BUTTON') {
+                // Preserve inner span for icons/values
+                element.childNodes[0].nodeValue = newText.trim().replace(/\s*$/, ' ');
+            } else {
+                element.textContent = newText;
+            }
+        }
+    });
+
+    // 2. Update descriptive labels (e.g., "Total Deals: X")
+    document.querySelectorAll('[data-en-label]').forEach(element => {
+        const labelAttr = `data-${lang}-label`;
+        const labelText = element.getAttribute(labelAttr);
+        if (labelText) {
+            const span = element.querySelector('span');
+            element.childNodes[0].nodeValue = `${labelText}: `;
+            if (span) element.appendChild(span); 
+        }
+    });
+
+    // 3. Update Alerts & Advisories
+    const alertsList = document.getElementById('alertsList');
+    if (alertsList) {
+        alertsList.innerHTML = `
+            <li><span class="px-2 py-1 rounded-md text-xs font-semibold alert-tag severe">${locale.severe_tag}</span> ${locale.alert_1}</li>
+            <li><span class="px-2 py-1 rounded-md text-xs font-semibold alert-tag moderate">${locale.warning_tag}</span> ${locale.alert_2}</li>
+            <li><span class="px-2 py-1 rounded-md text-xs font-semibold alert-tag info">${locale.info_tag}</span> ${locale.alert_3} for the ${teamName} team.</li>
+        `;
+    }
+    
+    // 4. Update Deal Stage
+    const stageElement = document.getElementById('currentStageValue');
+    if (stageElement) {
+        const stageKey = DEMO_DATA.sales.currentStageKey;
+        const stageLabel = stageElement.closest('p').getAttribute(`data-${lang}-label`);
+        const translatedStage = locale.stages[stageKey] || stageKey;
+        stageElement.textContent = translatedStage;
+        stageElement.closest('p').childNodes[0].nodeValue = `${stageLabel}: `;
+        stageElement.closest('p').appendChild(stageElement);
+    }
+    
+    // 5. Update Risk Level
+    const riskLevelElement = document.getElementById('accuracyRisk');
+    if(riskLevelElement) {
+        const currentRiskKey = riskLevelElement.getAttribute('data-risk-key') || 'Optimal';
+        const riskLabel = riskLevelElement.closest('p').getAttribute(`data-${lang}-label`);
+        const translatedRisk = locale.risk_level[currentRiskKey] || currentRiskKey;
+        riskLevelElement.textContent = translatedRisk;
+        riskLevelElement.closest('p').childNodes[0].nodeValue = `${riskLabel}: `;
+        riskLevelElement.closest('p').appendChild(riskLevelElement);
+    }
+
+    // 6. Update Coaching Insight
+    const coachingElement = document.getElementById('coachingInsight');
+    if(coachingElement) {
+        const coachingKey = coachingElement.getAttribute('data-coaching-key');
+        let insightText = '';
+        if (coachingKey == 1) insightText = locale.coaching_insight['High Confidence'];
+        else if (coachingKey == 2) insightText = locale.coaching_insight['Hold for Review'];
+        else insightText = locale.coaching_insight['Low Engagement'];
+        coachingElement.textContent = insightText;
+    }
+
+    // 7. Sync language selectors
+    if (languageSelectorDashboard) languageSelectorDashboard.value = lang;
+    if (languageSelectorAi) languageSelectorAi.value = lang;
+
+    localStorage.setItem('currentLanguage', lang);
+}
+
+// ----------------------------------------------------------------------
+// --- CORE LOGIC: NAVIGATION & AUTHENTICATION ---
+// ----------------------------------------------------------------------
+
+function showPage(pageId, navElement = null) {
+    // Pause TTS on navigation
+    if (window.currentPlayingAudio) {
+        window.currentPlayingAudio.pause();
+        window.currentPlayingAudio = null;
+    }
+    
+    allPages.forEach(page => page.classList.remove('active'));
+    
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.classList.add('active');
+        const currentLang = localStorage.getItem('currentLanguage') || 'en';
+
+        // Update active navigation link styling
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        if (navElement) {
+            navElement.classList.add('active');
+        } else if (pageId === 'dashboard-page') {
+            document.getElementById('navDashboardLink').classList.add('active');
+        }
+        
+        // Initialize specific page contents
+        if (pageId === 'dashboard-page') {
+            initializeDashboard();
+        } else if (pageId === 'ai-page') {
+            initializeAiAssistant();
+        } else if (pageId === 'transcript-analysis-page') {
+            initializeTranscriptAnalysis();
+        } else if (pageId === 'transcript-library-page') {
+            initializeLibraryPage();
+        } else if (pageId === 'resources-page') {
+            initializeResourcesPage();
+        }
+        
+        // Always apply language after loading content
+        updateContentLanguage(currentLang);
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('opacity-100', 'visible');
+        modal.classList.add('opacity-0', 'invisible');
+        if (modalId === 'loginModal') {
+            const loginError = document.getElementById('loginError');
+            if (loginError) loginError.style.display = 'none';
+        }
+    }
+}
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('opacity-0', 'invisible');
+        modal.classList.add('opacity-100', 'visible');
+    }
+}
+
+function handleSignUp(e) {
+    e.preventDefault();
+    const salesProfile = {
+        name: document.getElementById("salesName").value,
+        team: document.getElementById("teamName").value,
+        quota: document.getElementById("targetQuota").value,
+        startDate: document.getElementById("startDate").value
+    };
+    localStorage.setItem("salesProfile", JSON.stringify(salesProfile));
+    localStorage.setItem('isLoggedIn', 'true');
+    closeModal('onboardingModal');
+    checkUserSession();
+}
+
+function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+    const mockUsers = { 'rep': 'pass', 'atlas': 'ai' };
+    const loginError = document.getElementById('loginError');
+    
+    if (mockUsers[username] && mockUsers[username] === password) {
+        localStorage.setItem('isLoggedIn', 'true');
+        closeModal('loginModal');
+        if (loginError) loginError.style.display = 'none';
+        
+        // Set default profile if logging in without one
+        if (!localStorage.getItem("salesProfile")) {
+            localStorage.setItem("salesProfile", JSON.stringify({
+                name: username, team: "North America", quota: "$200,000", startDate: "2024-10-01"
+            }));
+        }
+        checkUserSession();
+    } else {
+        if (loginError) loginError.style.display = 'block';
+    }
+}
+
+function handleLogout(e) {
+    e.preventDefault();
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('salesProfile');
+    checkUserSession();
+    showPage('homepage');
+}
+
+function checkUserSession() {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const hasProfile = localStorage.getItem('salesProfile');
+
+    // Update UI element visibility
+    // Accept boolean or explicit display strings (e.g., 'flex')
+    const display = (el, show) => {
+        if (!el) return;
+        if (typeof show === 'string') {
+            el.style.display = show;
+        } else {
+            el.style.display = show ? 'block' : 'none';
+        }
+    };
+
+    display(loginBtn, !isLoggedIn);
+    display(signupBtn, !isLoggedIn);
+    display(heroSignupBtn, !isLoggedIn);
+    display(logoutBtn, isLoggedIn);
+    display(logoutBtnApp, isLoggedIn);
+    display(navDashboardLink, isLoggedIn);
+    display(floatingAiCta, isLoggedIn && hasProfile ? 'flex' : 'none');
+
+    if (isLoggedIn && hasProfile && document.getElementById('homepage').classList.contains('active')) {
+          showPage('dashboard-page');
+    } else if (isLoggedIn && !hasProfile) {
+          openModal('onboardingModal');
+          showPage('homepage');
+    }
+    
+    updateContentLanguage(localStorage.getItem('currentLanguage') || 'en');
+}
+
+// ----------------------------------------------------------------------
+// --- CORE LOGIC: DASHBOARD INITIALIZATION ---
+// ----------------------------------------------------------------------
+
+function initializeDashboard() {
+    const profile = JSON.parse(localStorage.getItem("salesProfile")) || {
+        name: "Demo Rep", team: "Unassigned", quota: "$0", startDate: "2024-01-01"
+    };
+    const currentLang = localStorage.getItem('currentLanguage') || 'en';
+    const locale = LOCALE_DATA[currentLang];
+
+    // 1. Update Profile Details
+    document.getElementById('repDetails').textContent = `${profile.name} (${profile.team})`;
+
+    // 2. Pipeline Health
+    document.getElementById('pipelineDeals').textContent = DEMO_DATA.sales.totalDeals;
+    document.getElementById('avgDealSize').textContent = DEMO_DATA.sales.avgDealSize;
+    document.getElementById('closing30Days').textContent = DEMO_DATA.sales.closing30Days;
+    
+    const milestoneList = document.getElementById('milestoneList');
+    if (milestoneList) {
+        milestoneList.innerHTML = DEMO_DATA.sales.milestones.map(m =>
+            `<li class="flex justify-between items-center text-sm"><span class="font-bold text-secondary-cyan/80">${m.day}</span> ${m.name}</li>`
+        ).join('');
+    }
+
+    // 3. Deal Velocity
+    // avgStageDuration is the span itself in markup; set its textContent directly
+    const avgStageEl = document.getElementById('avgStageDuration');
+    if (avgStageEl) avgStageEl.textContent = DEMO_DATA.sales.avgStageDuration;
+    document.getElementById('currentStageValue').textContent = DEMO_DATA.sales.currentStageKey; // Localized after
+    document.getElementById('dealVelocityBar').style.width = `${DEMO_DATA.sales.dealVelocityProgress}%`;
+
+    // 4. CRM Data Integrity
+    const integrity = DEMO_DATA.dataIntegrity.score;
+    const riskKey = DEMO_DATA.dataIntegrity.riskKey;
+    document.getElementById('integrityScore').textContent = `${integrity}%`;
+    document.getElementById('accuracyRisk').setAttribute('data-risk-key', riskKey);
+    document.getElementById('accuracyRisk').textContent = riskKey; // Localized after
+    document.getElementById('dataIntegrityBar').style.width = `${integrity}%`;
+    
+    const dataAdviceElement = document.getElementById('dataAdvice');
+    dataAdviceElement.innerHTML = DEMO_DATA.dataIntegrity.advice.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Color code the bar and advice based on risk level
+    let barColor = '#22c55e'; // Green-500 (Optimal)
+    if (riskKey === 'Moderate') barColor = '#facc15'; // Yellow-500
+    else if (riskKey === 'Severe') barColor = '#ef4444'; // Red-500
+
+    document.getElementById('dataIntegrityBar').style.backgroundColor = barColor;
+    dataAdviceElement.style.borderLeftColor = barColor;
+
+    // 5. Revenue Projection
+    document.getElementById('currentPipelineValue').textContent = `$${DEMO_DATA.sales.pipelineValue}`;
+    
+    const coachingElement = document.getElementById('coachingInsight');
+    coachingElement.setAttribute('data-coaching-key', DEMO_DATA.sales.coachingKey);
+    coachingElement.textContent = locale.coaching_insight[DEMO_DATA.sales.coachingKey === 1 ? 'High Confidence' : (DEMO_DATA.sales.coachingKey === 2 ? 'Hold for Review' : 'Low Engagement')];
+    coachingElement.style.backgroundColor = DEMO_DATA.sales.coachingKey === 1 ? '#16a34a' : (DEMO_DATA.sales.coachingKey === 2 ? '#be123c' : '#f97316');
+    coachingElement.style.color = DEMO_DATA.sales.coachingKey === 1 ? '#e0f2f1' : 'white';
+    coachingElement.style.borderLeftColor = DEMO_DATA.sales.coachingKey === 1 ? '#4ade80' : (DEMO_DATA.sales.coachingKey === 2 ? '#f87171' : '#fcd34d');
+
+    // 6. Initialize Charts
+    const initChart = (id, data, options = {}) => {
+        const chartElement = document.getElementById(id);
+        if (chartElement && chartElement.chart) chartElement.chart.destroy();
+        const ctx = chartElement.getContext('2d');
+        chartElement.chart = new Chart(ctx, {
+            type: data.type,
+            data: data.data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+                    y: { ticks: { color: '#94a3b8' }, beginAtZero: options.beginAtZero !== false, grid: { color: '#334155' } }
+                },
+                ...options
+            }
+        });
+    };
+
+    // Revenue Chart (Line) - ensure labels are defined to avoid Chart.js errors
+    const revenueLabels = Array.from({ length: (DEMO_DATA.sales.revenueChart || []).length }, (_, i) => `Day ${i + 1}`);
+    initChart('revenueChart', {
+        type: 'line',
+        data: {
+            labels: revenueLabels,
+            datasets: [{
+                label: 'Pipeline Value (K)',
+                data: DEMO_DATA.sales.revenueChart || [],
+                borderColor: '#06b6d4',
+                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 8
+            }]
+        }
+    }, { beginAtZero: false });
+
+    // Reapply language to update all newly set labels
+    updateContentLanguage(currentLang);
+}
+
+// ----------------------------------------------------------------------
+// --- INITIALIZE LIBRARY/RESOURCE PAGES (Mock Content Generation) ---
+// ----------------------------------------------------------------------
+
+function initializeLibraryPage() {
+    const libraryGrid = document.getElementById('transcriptGrid');
+    if (!libraryGrid) return;
+    libraryGrid.innerHTML = ''; 
+
+    // Use hardcoded list since DEMO_DATA is now scenarios
+    const libraryItems = [
+        { title: "Q3 Top Performer Call", meta: "Closed Won | $25k | 88% Data Score" },
+        { title: "Stalled Deal Review - July", meta: "Negotiation | $40k | Low Engagement" },
+        { title: "New Prospect Call Script", meta: "Template | Qualification" },
+        { title: "Renewal Discussion - Client X", meta: "Discovery | $15k | High Sentiment" }
+    ];
+
+    libraryItems.forEach(item => {
+        const cardHtml = `
+            <div class="p-4 rounded-xl bg-gray-800 shadow-md border border-gray-700 cursor-pointer hover:border-secondary-cyan transition duration-200">
+                <div class="flex items-center">
+                    <span class="material-icons text-secondary-cyan mr-3">mic_external_on</span>
+                    <h3 class="text-light-text font-semibold">${item.title}</h3>
+                </div>
+                <p class="text-subtle-text text-sm mt-2">${item.meta}</p>
+                <button class="mt-3 text-xs text-primary-blue hover:text-accent-orange font-medium" onclick="showPage('transcript-analysis-page')">View Full Analysis & Coaching</button>
+            </div>
+        `;
+        libraryGrid.insertAdjacentHTML('beforeend', cardHtml);
+    });
+}
+
+function initializeResourcesPage() {
+    const resourceGrid = document.getElementById('resourceGrid');
+    if (!resourceGrid) return;
+    resourceGrid.innerHTML = ''; 
+    
+    // Use hardcoded list since DEMO_DATA is now scenarios
+    const resourceItems = [
+        { title: "Integration Documentation", emoji: "🔗", description: "Guides for connecting to major CRM platforms (Salesforce, HubSpot)." },
+        { title: "Sales Strategy Playbook", emoji: "📚", description: "Best practices for handling common objections." },
+        { title: "Call Summary Template", emoji: "📝", description: "Recommended structure for call data extraction." },
+        { title: "QBR Presentation Template", emoji: "📊", description: "Ready-to-use template for Quarterly Business Review." },
+        { title: "Run Live Transcript Analysis", emoji: "🔎", description: "Paste a transcript for instant data extraction.", pageId: "transcript-analysis-page" }
+    ];
+
+
+    resourceItems.forEach(resource => {
+        const clickAction = resource.pageId ? `onclick="showPage('${resource.pageId}')"` : '';
+        const cardHtml = `
+            <div class="p-4 rounded-xl bg-gray-800 shadow-md border border-gray-700 hover:border-secondary-cyan transition duration-200 flex flex-col justify-between">
+                <div class="flex items-start">
+                    <span class="text-xl mr-3">${resource.emoji}</span>
+                    <div>
+                        <h3 class="text-light-text font-semibold">${resource.title}</h3>
+                        <p class="text-subtle-text text-sm mt-1">${resource.description}</p>
+                    </div>
+                </div>
+                <a href="#" ${clickAction} class="mt-4 text-xs text-primary-blue hover:text-accent-orange font-medium self-end">Access Resource</a>
+            </div>
+        `;
+        resourceGrid.insertAdjacentHTML('beforeend', cardHtml);
+    });
+}
+
+function initializeTranscriptAnalysis() {
+    // Reset/clear analysis fields when navigating to the page
+    document.getElementById('transcriptInput').value = '';
+    document.getElementById('analysisResult').style.display = 'none';
+    document.getElementById('analysisLoading').style.display = 'none';
+}
+
+// Function triggered by the "Run Analysis" button
+function runAnalysis() {
+    const transcript = document.getElementById('transcriptInput').value.trim();
+    const loading = document.getElementById('analysisLoading');
+    const resultCard = document.getElementById('analysisResult');
+    const extractedFieldsList = document.getElementById('extractedFields');
+    const jsonOutput = document.getElementById('jsonOutput');
+
+    if (transcript.length < 50) {
+        alert("Please paste a longer transcript for meaningful analysis (min 50 characters).");
+        return;
+    }
+
+    // Show loading
+    loading.style.display = 'block';
+    resultCard.style.display = 'none';
+    jsonOutput.textContent = '...Analyzing and generating structured data...';
+
+    // Simulate AI processing (3 second delay)
+    setTimeout(() => {
+        
+        // Mock data extraction
+        const analysis = DEMO_DATA.analysisResults;
+        
+        // Mock JSON output (Pydantic Schema Enforcement Simulation)
+        const mockJson = JSON.stringify({
+            dealID: "TLM-4521",
+            account: "Prosperity Holdings",
+            painPointSummary: analysis.PainPoint,
+            budgetConfidence: analysis.BudgetSignal,
+            timeline: analysis.Timeline,
+            sentiment: analysis.Sentiment,
+            nextStep: "Technical Deep Dive Scheduled",
+            followUpRequired: true
+        }, null, 2);
+        
+        jsonOutput.textContent = mockJson;
+        
+        document.getElementById('resultTitle').textContent = `Transcript Summary:`;
+        document.getElementById('resultSummary').textContent = "Key conversational data successfully extracted and structured:";
+        
+        extractedFieldsList.innerHTML = `
+            <li>**Pain Point:** ${analysis.PainPoint}</li>
+            <li>**Budget Signal:** ${analysis.BudgetSignal}</li>
+            <li>**Timeline:** ${analysis.Timeline}</li>
+            <li>**Sentiment:** ${analysis.Sentiment}</li>
+            <li>**Follow-up:** **Critical**. Technical deep dive needed next week.</li>
+        `;
+        
+        // Apply strong tag formatting
+        document.getElementById('resultSummary').innerHTML = document.getElementById('resultSummary').textContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        extractedFieldsList.innerHTML = extractedFieldsList.innerHTML.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        loading.style.display = 'none';
+        resultCard.style.display = 'block';
+        updateContentLanguage(localStorage.getItem('currentLanguage') || 'en');
+        
+    }, 3000); 
+}
+
+// ----------------------------------------------------------------------
+// --- CORE LOGIC: AI ASSISTANT (ATLAS) ---
+// ----------------------------------------------------------------------
+
+function initializeAiAssistant() {
+    const chatBox = document.getElementById("chatBox");
+    const textInput = document.getElementById("textInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const voiceBtn = document.getElementById("voiceBtn");
+    const aiStatus = document.getElementById("aiStatus");
+    const currentLang = localStorage.getItem('currentLanguage') || 'en';
+    
+    // Clear chat on re-initialization (only if empty to prevent re-adding welcome)
+    if (!chatBox.getAttribute('data-initialized') || localStorage.getItem('currentLanguage') !== chatBox.getAttribute('data-lang')) {
+        chatBox.innerHTML = '';
+        chatBox.setAttribute('data-initialized', 'true');
+        chatBox.setAttribute('data-lang', currentLang);
+    }
+    
+    const profile = JSON.parse(localStorage.getItem("salesProfile")) || {
+        name: "Demo Rep", team: "Unassigned"
+    };
+    const { name: repName, team: repTeam } = profile;
+    const langName = { en: 'English', hi: 'Hindi', ta: 'Tamil', ma: 'Malayalam' }[currentLang];
+
+    function addMessage(text, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add(sender === 'ai' ? 'ai-message' : 'user-message');
+        const bubble = document.createElement('div');
+        bubble.classList.add('message-bubble', 'p-4', 'rounded-xl', 'max-w-xs', 'md:max-w-lg');
+        
+        // Simple HTML sanitization and markdown bold conversion
+        let cleanText = text.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
+                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        const p = document.createElement('p');
+        p.innerHTML = cleanText;
+
+        if (sender === 'ai') {
+            const avatar = document.createElement('span');
+            avatar.classList.add('text-3xl', 'mr-2', 'flex-shrink-0');
+            avatar.textContent = '🤖';
+            messageDiv.appendChild(avatar);
+
+            // TTS Button Setup
+            const playBtn = document.createElement('button');
+            playBtn.classList.add('tts-play-btn', 'ml-3', 'text-lg', 'transition', 'duration-100');
+            playBtn.innerHTML = '<span class="material-icons">volume_up</span>';
+            playBtn.style.color = '#94a3b8'; // subtle text color
+
+            playBtn.addEventListener('click', async () => {
+                const originalIcon = playBtn.innerHTML;
+                const originalColor = playBtn.style.color;
+                
+                playBtn.innerHTML = '<span class="material-icons spin-animation">sync</span>';
+                playBtn.style.color = '#f97316'; 
+                playBtn.disabled = true;
+
+                if (window.currentPlayingAudio) {
+                    window.currentPlayingAudio.pause();
+                    window.currentPlayingAudio = null;
+                }
+                
+                const audioUrl = await getTtsAudio(p.textContent, localStorage.getItem('currentLanguage') || 'en');
+                
+                playBtn.innerHTML = originalIcon;
+                playBtn.style.color = originalColor;
+                playBtn.disabled = false;
+
+                if (audioUrl) {
+                    const audio = new Audio(audioUrl);
+                    window.currentPlayingAudio = audio;
+                    
+                    audio.onplaying = () => { playBtn.style.color = '#ef4444'; }; // Red while playing
+                    audio.onended = () => { 
+                        playBtn.style.color = originalColor; 
+                        window.currentPlayingAudio = null;
+                        URL.revokeObjectURL(audioUrl);
+                    };
+                    
+                    audio.play().catch(e => {
+                        console.error("Audio playback failed:", e);
+                        playBtn.style.color = originalColor;
+                        window.currentPlayingAudio = null;
+                        URL.revokeObjectURL(audioUrl);
+                    });
+                }
+            });
+
+            bubble.appendChild(p);
+            bubble.appendChild(playBtn);
+            bubble.classList.remove('bg-light-text');
+            bubble.classList.add('bg-gray-700', 'text-light-text');
+            
+        } else {
+            bubble.appendChild(p);
+            bubble.classList.add('bg-secondary-cyan', 'text-dark-bg');
+            bubble.classList.remove('bg-card-bg');
+        }
+        
+        messageDiv.appendChild(bubble);
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('ai-message');
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = `<span class="text-3xl mr-2 flex-shrink-0">🤖</span><div class="message-bubble bg-gray-700 p-3 rounded-full"><div class="typing-indicator flex space-x-1 items-center w-8"><span class="block w-2 h-2 rounded-full bg-subtle-text typing-dot"></span><span class="block w-2 h-2 rounded-full bg-subtle-text typing-dot"></span><span class="block w-2 h-2 rounded-full bg-subtle-text typing-dot"></span></div></div>`;
+        chatBox.appendChild(typingDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        if (aiStatus) {
+            aiStatus.textContent = "Typing...";
+            aiStatus.classList.remove('online');
+            aiStatus.classList.add('typing');
+        }
+    }
+    function removeTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) typingIndicator.remove();
+        if (aiStatus) {
+            aiStatus.textContent = "Online";
+            aiStatus.classList.remove('typing');
+            aiStatus.classList.add('online');
+        }
+    }
+
+    async function getAiResponse(query) {
+        if (!GEMINI_API_KEY) {
+            return "Atlas: The AI is offline. Please set the **GEMINI_API_KEY** in the script to enable chat.";
+        }
+        
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const systemPrompt = `You are Atlas, a **Precision Sales Intelligence AI Assistant** for the Automated Sales Intelligence platform. You are highly specialized in sales coaching, CRM data structure, pipeline analysis, and converting transcripts into actionable insights. The user is ${repName}, a sales representative on the ${repTeam} team. Answer concisely, using expert-level sales terminology, and ONLY in the ${langName} language.`;
+        
+        const payload = {
+            contents: [{ parts: [{ text: query }] }],
+            tools: [{ "google_search": {} }], 
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+        };
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+            const data = await response.json();
+            
+            let responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if (responseText) return responseText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            return "Atlas: I am unable to generate a coherent sales response right now. Please try rephrasing your coaching request.";
+        } catch (error) {
+            console.error("Error fetching AI response:", error);
+            return "Atlas: Connection error. Please check your network or API configuration.";
+        }
+    }
+
+    async function processQuery(query) {
+        if (!query.trim()) return;
+        addMessage(query, 'user');
+        textInput.value = '';
+        showTypingIndicator();
+        const aiResponse = await getAiResponse(query);
+        removeTypingIndicator();
+        addMessage(aiResponse, 'ai');
+    }
+
+    // --- SpeechRecognition Logic (Adapted for Atlas) ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition && voiceBtn) {
+        const recognition = new SpeechRecognition();
+        const recognizerLang = currentLang === 'hi' ? 'hi-IN' : (currentLang === 'ta' ? 'ta-IN' : (currentLang === 'ma' ? 'ml-IN' : 'en-IN'));
+        recognition.lang = recognizerLang;
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        voiceBtn.addEventListener('click', () => {
+            try {
+                recognition.start();
+                if (aiStatus) {
+                    aiStatus.textContent = "Listening...";
+                    aiStatus.classList.add('typing');
+                }
+                voiceBtn.style.color = '#ef4444'; // Red while listening
+            } catch (e) {
+                console.error("Speech recognition already running or not allowed.", e);
+            }
+        });
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            if (textInput) textInput.value = transcript;
+            processQuery(transcript);
+        };
+        
+        recognition.onend = () => {
+            voiceBtn.style.color = '#1e40af'; // Reset to primary blue
+            if (aiStatus && !document.getElementById('typing-indicator')) {
+                aiStatus.textContent = "Online";
+                aiStatus.classList.remove('typing');
+            }
+        };
+        
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error:", event.error);
+            if (aiStatus) {
+                aiStatus.textContent = "Online";
+                aiStatus.classList.remove('typing');
+            }
+            voiceBtn.style.color = '#1e40af';
+        };
+    } else if (voiceBtn) {
+        console.warn("Speech Recognition not supported.");
+        voiceBtn.style.display = 'none';
+    }
+
+    const welcomeMessage = {
+        en: `Hello ${repName}. I'm Atlas, your Sales Intelligence Assistant. My systems are live with your ${repTeam} pipeline data. How can I assist with your deal strategy or coaching today?`,
+        hi: `नमस्ते ${repName}। मैं एटलस हूँ, आपका बिक्री इंटेलिजेंस सहायक। मेरा सिस्टम आपके ${repTeam} पाइपलाइन डेटा के साथ लाइव है। मैं आज आपकी डील रणनीति या कोचिंग में कैसे मदद कर सकता हूँ?`,
+        ta: `வணக்கம் ${repName}. நான் அட்லஸ், உங்கள் விற்பனை நுண்ணறிவு உதவியாளர். எனது அமைப்புகள் உங்கள் ${repTeam} பைபலைன் தரவுடன் நேரலையில் உள்ளன. இன்று உங்கள் ஒப்பந்த மூலோபாயம் அல்லது பயிற்சியில் நான் எவ்வாறு உதவ முடியும்?`,
+        ma: `ഹലോ ${repName}. ഞാൻ അറ്റ്ലസ്, നിങ്ങളുടെ വിൽപ്പന ഇൻ്റലിജൻസ് അസിസ്റ്റൻ്റ്. എൻ്റെ സിസ്റ്റങ്ങൾ നിങ്ങളുടെ ${repTeam} പൈപ്പ്ലൈൻ ഡാറ്റയുമായി ലൈവാണ്. നിങ്ങളുടെ ഡീൽ തന്ത്രത്തിലോ കോച്ചിംഗിലോ ഞാൻ ഇന്ന് എങ്ങനെ സഹായിക്കും?`
+    };
+
+    if (chatBox.children.length === 0) {
+        addMessage(welcomeMessage[currentLang] || welcomeMessage.en, 'ai');
+    }
+    
+    if (sendBtn) sendBtn.addEventListener('click', () => processQuery(textInput.value));
+    if (textInput) textInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') processQuery(textInput.value);
+    });
+}
+
+// ----------------------------------------------------------------------
+// --- EVENT LISTENERS ---
+// ----------------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Set up language selector event listeners
+    if (languageSelectorDashboard) languageSelectorDashboard.addEventListener('change', (e) => {
+        const lang = e.target.value;
+        localStorage.setItem('currentLanguage', lang);
+        updateContentLanguage(lang);
+        // Re-initialize dashboard content in the new language if visible
+        if (document.getElementById('dashboard-page').classList.contains('active')) initializeDashboard();
+    });
+    if (languageSelectorAi) languageSelectorAi.addEventListener('change', (e) => {
+        const lang = e.target.value;
+        localStorage.setItem('currentLanguage', lang);
+        updateContentLanguage(lang);
+        initializeAiAssistant();
+    });
+
+    // Core Auth/Session Management
+    checkUserSession();
+
+    // Modals & Links
+    if (signupBtn) signupBtn.addEventListener('click', (e) => { e.preventDefault(); openModal('onboardingModal'); });
+    if (heroSignupBtn) heroSignupBtn.addEventListener('click', (e) => { e.preventDefault(); openModal('onboardingModal'); });
+    if (loginBtn) loginBtn.addEventListener('click', (e) => { e.preventDefault(); openModal('loginModal'); });
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    if (logoutBtnApp) logoutBtnApp.addEventListener('click', handleLogout);
+    if (onboardingForm) onboardingForm.addEventListener("submit", handleSignUp);
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
+});
+    </script>
+</body>
+</html>
